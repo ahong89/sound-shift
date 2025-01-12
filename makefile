@@ -21,4 +21,4 @@ run: $(TARGET)
 	./$(TARGET)
 
 clean:
-	del $(TARGET_DEL) $(OBJS)
+	rm -f $(TARGET_DEL) $(OBJS)
