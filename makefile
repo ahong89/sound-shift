@@ -3,7 +3,7 @@ CXX = g++
 CXXFLAGS = -Wall
 TARGET = main
 TARGET_DEL = main
-SRCS = src/main.cpp
+SRCS = src/parser.cpp src/processor.cpp src/main.cpp
 OBJS = $(SRCS:.cpp=.o)
 LIBS = rubberband
 INCLUDE_PATH = ./include
