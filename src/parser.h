@@ -1,5 +1,6 @@
 #include <cstdint>
 #include <string>
+#include <fstream>
 
 using namespace std;
 
@@ -37,7 +38,13 @@ public:
 	void print_data();
 private:
 	string filename = "bach.wav";
+	ifstream fin;
 	WAVHeader header;
 	FmtChunk fmt;
 	DataChunk data;
+
+	void read_header();
+	void read_fmt(ChunkInfo chunk_info);
+	void read_data(ChunkInfo chunk_info);
+	bool read_chunk_info(ChunkInfo* chunk_info);
 };

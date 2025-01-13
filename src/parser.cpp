@@ -7,31 +7,64 @@
 using namespace std;
 
 Parser::Parser() {
-	// read .wav input
-	WAVHeader header;
-	
-	ifstream fin("./media/" + filename, ios::binary);
-	fin.read((char*)(&header), sizeof(header));
-	
-	ChunkInfo chunk_info;
+	// read .wav input	
+	fin = ifstream("./media/" + filename, ios::binary);
+	read_header();
+	print_header();
+
 	char fmt_id[4] = {'f', 'm', 't', ' '};
 	char data_id[4] = {'d', 'a', 't', 'a'};
-	while(fin.read((char*)(&chunk_info), sizeof(chunk_info))){
-		if(memcmp(chunk_info.subchunk_id, fmt_id, 4) == 0) {
-			fin.read((char*)(&fmt), sizeof(fmt));
-			cout << "We found the fmt" << endl;
-			print_fmt();
-		} else if(memcmp(chunk_info.subchunk_id, data_id, 4) == 0) {
-			cout << "We found the data" << endl;
+	ChunkInfo* chunk_info = new ChunkInfo;
+	while(true){
+		bool succeed = read_chunk_info(chunk_info);
+		if(succeed) {
+			if(memcmp(chunk_info->subchunk_id, fmt_id, 4) == 0) {
+				read_fmt(*chunk_info);
+				print_fmt();
+			} else if(memcmp(chunk_info->subchunk_id, data_id, 4) == 0) {
+				read_data(*chunk_info);
+				cout << "We found the data" << endl;
+			} else {
+				cout << "We found a different chunk of size: " << chunk_info->subchunk_size << endl;
+				cout << "Subchunk id: " << chunk_info->subchunk_id << endl;
+				break;
+			}
 		} else {
-			cout << "We found a different chunk of size: " << chunk_info.subchunk_size << endl;
-			cout << "Subchunk id: " << chunk_info.subchunk_id << endl;
 			break;
 		}
+	}
+	delete chunk_info;
+}
+
+void Parser::read_header() {
+	fin.read((char*)(&header.chunk_id), sizeof(header.chunk_id));
+	fin.read((char*)(&header.chunk_size), sizeof(header.chunk_size));
+	fin.read((char*)(&header.format), sizeof(header.format));
+}
+
+void Parser::read_fmt(ChunkInfo chunk_info) {
+	fin.read((char*)(&fmt.audio_format), sizeof(fmt.audio_format));
+	fin.read((char*)(&fmt.num_channels), sizeof(fmt.num_channels));
+	fin.read((char*)(&fmt.sample_rate), sizeof(fmt.sample_rate));
+	fin.read((char*)(&fmt.byte_rate), sizeof(fmt.byte_rate));
+	fin.read((char*)(&fmt.audio_format), sizeof(fmt.block_align));
+	fin.read((char*)(&fmt.bits_per_sample), sizeof(fmt.bits_per_sample));
+}
+
+void Parser::read_data(ChunkInfo chunk_info) {
+
+}
+
+bool Parser::read_chunk_info(ChunkInfo* chunk_info) { // returns bool for whether it succeeds
+	if(fin.read((char*)(chunk_info), sizeof(chunk_info))) {
+		return true;
+	} else {
+		return false;
 	}
 }
 
 void Parser::print_fmt() {
+	cout << "---FMT DATA---" << endl;
 	cout << "Audio format: " << fmt.audio_format << endl;
 	cout << "Channels: " << fmt.num_channels << endl;
 	cout << "Sample Rate: " << fmt.sample_rate << endl;
