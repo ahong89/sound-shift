@@ -25,7 +25,8 @@ struct FmtChunk {
 };
 
 struct DataChunk {
-	
+	float** audio_data;
+	unsigned long num_samples;
 };
 
 class Parser {
@@ -43,8 +44,8 @@ private:
 	FmtChunk fmt;
 	DataChunk data;
 
-	void read_header();
-	void read_fmt(ChunkInfo chunk_info);
-	void read_data(ChunkInfo chunk_info);
+	bool read_header();
+	bool read_fmt(ChunkInfo chunk_info);
+	bool read_data(ChunkInfo chunk_info);
 	bool read_chunk_info(ChunkInfo* chunk_info);
 };
