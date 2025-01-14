@@ -3,9 +3,9 @@ CXX = g++
 CXXFLAGS = -Wall
 TARGET = main
 TARGET_DEL = main
-SRCS = src/parser.cpp src/processor.cpp src/main.cpp
+SRCS = src/parser.cpp src/processor.cpp src/player.cpp src/main.cpp
 OBJS = $(SRCS:.cpp=.o)
-LIBS = rubberband
+LIBS = -lrubberband -lportaudio
 INCLUDE_PATH = ./include
 LIB_PATH = ./lib
 
@@ -13,7 +13,7 @@ LIB_PATH = ./lib
 all: $(TARGET) run
 
 $(TARGET): $(OBJS)
-	$(CXX) $(CXXFLAGS) -o $(TARGET) $(OBJS) -L$(LIB_PATH) -l$(LIBS)
+	$(CXX) $(CXXFLAGS) -o $(TARGET) $(OBJS) -L$(LIB_PATH) $(LIBS)
 
 %.o: %.cpp
 	$(CXX) $(CXXFLAGS) -c $< -o $@ -I$(INCLUDE_PATH)

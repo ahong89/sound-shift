@@ -2,16 +2,19 @@
 
 #include "parser.h"
 #include "processor.h"
+#include "player.h"
 
 using namespace std;
 
 int main() {
 	// initialize parser
-	Parser parser;
+	// Parser parser;
 
 	// initialize stretcher
 	// Processor processor; // should call constructor
 
+	// initialize player
+	Player player(44100);
 
 	// process loop
 	while(true) {
@@ -20,6 +23,7 @@ int main() {
 		// provide num of samples to process()
 
 		// read output using availble() or retrieve()
+		
 		break;
 	}
 

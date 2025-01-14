@@ -34,6 +34,8 @@ public:
 	Parser();
 	void parse();
 
+	uint32_t get_sample_rate();
+
 	void print_header();
 	void print_fmt();
 	void print_data();

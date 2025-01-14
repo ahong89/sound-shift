@@ -75,7 +75,6 @@ bool Parser::read_fmt(ChunkInfo chunk_info) {
 bool Parser::read_data(ChunkInfo chunk_info) {
 	uint16_t bytes_per_sample = fmt.bits_per_sample / 8;
 	uint16_t max_value = pow(2, (bytes_per_sample * 8)) / 2 - 1;
-	cout << "subchunk_size: " << chunk_info.subchunk_size << endl;
 	data.num_samples = chunk_info.subchunk_size / fmt.num_channels / fmt.bits_per_sample * 8;
 	data.audio_data = new float*[fmt.num_channels];
 	for(int i = 0; i < fmt.num_channels; i++) {
@@ -86,8 +85,8 @@ bool Parser::read_data(ChunkInfo chunk_info) {
 		for(int channel = 0; channel < fmt.num_channels; channel++) {
 			char buffer[bytes_per_sample];
 			int64_t sample_value = 0;
+			fin.read(buffer, bytes_per_sample);
 			for(int i = 0; i < bytes_per_sample; i++) {
-				fin.read(buffer, bytes_per_sample);
 				sample_value = sample_value | ((buffer[i]) << (i * 8));
 			}
 			data.audio_data[channel][sample] = (float)sample_value / (float)max_value;	
@@ -105,6 +104,10 @@ bool Parser::read_chunk_info(ChunkInfo* chunk_info) { // returns bool for whethe
 	} else {
 		return false;
 	}
+}
+
+uint32_t Parser::get_sample_rate() {
+	return fmt.sample_rate;
 }
 
 void Parser::print_fmt() {
@@ -125,6 +128,7 @@ void Parser::print_header() {
 }
 
 void Parser::print_data() {
+	cout << "---DATA---" << endl;
 	for(unsigned long sample = 0; sample < data.num_samples; sample++) {
 		for(int channel = 0; channel < fmt.num_channels; channel++) {
 			cout << data.audio_data[channel][sample] << " ";
