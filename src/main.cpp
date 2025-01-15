@@ -1,4 +1,5 @@
 #include <iostream>
+#include <fstream>
 
 #include "parser.h"
 #include "processor.h"
@@ -8,13 +9,21 @@ using namespace std;
 
 int main() {
 	// initialize parser
-	// Parser parser;
+	Parser parser;
+	parser.parse();
+	float** data = parser.get_audio_data();
+	unsigned long num_samples = parser.get_num_samples();
+	uint16_t num_channels = parser.get_num_channels();
+	uint32_t sample_rate = parser.get_sample_rate();
 
 	// initialize stretcher
 	// Processor processor; // should call constructor
-
+	
 	// initialize player
-	Player player(44100);
+	Player player(sample_rate, num_channels);
+	player.set_audio(data, num_samples, num_channels);
+	player.start_stream();
+
 
 	// process loop
 	while(true) {
@@ -26,6 +35,7 @@ int main() {
 		
 		break;
 	}
+	cout << "End of program" << endl;
 
 	return 0;
 }

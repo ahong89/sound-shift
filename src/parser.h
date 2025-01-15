@@ -2,6 +2,7 @@
 #include <string>
 #include <fstream>
 
+
 using namespace std;
 
 struct WAVHeader {
@@ -24,16 +25,14 @@ struct FmtChunk {
 	uint16_t bits_per_sample;
 };
 
-struct DataChunk {
-	float** audio_data;
-	unsigned long num_samples;
-};
-
 class Parser {
 public:
 	Parser();
-	void parse();
+	void parse();	
 
+	float** get_audio_data();
+	unsigned long get_num_samples();
+	uint16_t get_num_channels();
 	uint32_t get_sample_rate();
 
 	void print_header();
@@ -44,10 +43,12 @@ private:
 	ifstream fin;
 	WAVHeader header;
 	FmtChunk fmt;
-	DataChunk data;
+	float** audio_data;
+	unsigned long num_samples;
 
 	bool read_header();
 	bool read_fmt(ChunkInfo chunk_info);
 	bool read_data(ChunkInfo chunk_info);
 	bool read_chunk_info(ChunkInfo* chunk_info);
 };
+
