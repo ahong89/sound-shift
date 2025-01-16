@@ -120,24 +120,36 @@ bool Parser::read_fmt(ChunkInfo chunk_info) {
 
 bool Parser::read_data(ChunkInfo chunk_info) {
 	uint16_t bytes_per_sample = fmt.bits_per_sample / 8;
-	uint16_t max_value = pow(2, (bytes_per_sample * 8)) / 2 - 1;
+	int64_t max_value = pow(2, (bytes_per_sample * 8)) / 2;
+	cout << "Max_value: " << max_value <<  endl;
 	num_samples = chunk_info.subchunk_size / fmt.num_channels / fmt.bits_per_sample * 8;
 	audio_data = new float*[fmt.num_channels];
 	for(int i = 0; i < fmt.num_channels; i++) {
 		audio_data[i] = new float[num_samples];
 	}
-
+	
 	for(unsigned long sample = 0; sample < num_samples; sample++) {
+		/* for(int channel = 0; channel < fmt.num_channels; channel++) { // fixed 2 byte size
+			int16_t sample_value = 0;
+			fin.read((char*)(&sample_value), sizeof(sample_value));
+			audio_data[channel][sample] = (float)sample_value / (float)max_value;
+			fout << sample_value << ", ";
+		} */
 		for(int channel = 0; channel < fmt.num_channels; channel++) {
 			char buffer[bytes_per_sample];
 			int64_t sample_value = 0;
 			fin.read(buffer, bytes_per_sample);
-			for(int i = 0; i < bytes_per_sample; i++) {
-				sample_value = sample_value | ((buffer[i]) << (i * 8));
+			for(uint16_t i = 0; i < bytes_per_sample; i++) {
+				uint16_t byte_shift = i;
+				uint64_t next = (buffer[i] & 0x00ff) << (byte_shift * 8);
+				sample_value |= next;
 			}
-			audio_data[channel][sample] = (float)sample_value / (float)max_value;	
+			if(sample_value > max_value) {
+				sample_value = (max_value * 2 - sample_value) * -1;
+			}
+			audio_data[channel][sample] = (float)sample_value / (float)max_value;
 		}
-		if(fin.fail()) {	
+		if(fin.fail()) {
 			break;
 		}
 	}

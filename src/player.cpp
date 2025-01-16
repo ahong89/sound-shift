@@ -14,11 +14,11 @@ int Player::pa_callback(const void* input, void* output, unsigned long frames_pe
 
 	for(unsigned long i = 0; i < frames_per_buffer; i++) {
 		if(audio_data->sample_index + i < audio_data->num_samples) {
-			out[i] = audio_data->data[0][audio_data->sample_index + i];
-			out[i] = audio_data->data[1][audio_data->sample_index + i];
+			out[i*2] = audio_data->data[0][audio_data->sample_index + i];
+			out[i*2+1] = audio_data->data[1][audio_data->sample_index + i];
 		} else {
-			out[i] = 0;
-			out[i] = 0;
+			out[i*2] = 0;
+			out[i*2+1] = 0;
 		}
 	}
 	audio_data->sample_index += frames_per_buffer;
@@ -83,5 +83,4 @@ void Player::set_audio(float** data, unsigned long num_samples, uint16_t num_cha
 	audio_data.num_channels = num_channels;
 	audio_data.sample_index = 0;
 	this->audio_data = audio_data;
-	cout << "This is sample_index rn: " << this->audio_data.sample_index << endl;
 }
