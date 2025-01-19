@@ -108,6 +108,14 @@ bool Parser::read_header() {
 	return !fin.fail() && !fin.eof();
 }
 
+bool Parser::read_chunk_info(ChunkInfo* chunk_info) { // returns bool for whether it succeeds
+	if(fin.read((char*)(chunk_info), sizeof(chunk_info))) {
+		return true;
+	} else {
+		return false;
+	}
+}
+
 bool Parser::read_fmt(ChunkInfo chunk_info) {
 	fin.read((char*)(&fmt.audio_format), sizeof(fmt.audio_format));
 	fin.read((char*)(&fmt.num_channels), sizeof(fmt.num_channels));
@@ -120,34 +128,17 @@ bool Parser::read_fmt(ChunkInfo chunk_info) {
 
 bool Parser::read_data(ChunkInfo chunk_info) {
 	uint16_t bytes_per_sample = fmt.bits_per_sample / 8;
-	int64_t max_value = pow(2, (bytes_per_sample * 8)) / 2;
-	cout << "Max_value: " << max_value <<  endl;
 	num_samples = chunk_info.subchunk_size / fmt.num_channels / fmt.bits_per_sample * 8;
 	audio_data = new float*[fmt.num_channels];
 	for(int i = 0; i < fmt.num_channels; i++) {
 		audio_data[i] = new float[num_samples];
 	}
 	
-	for(unsigned long sample = 0; sample < num_samples; sample++) {
-		/* for(int channel = 0; channel < fmt.num_channels; channel++) { // fixed 2 byte size
-			int16_t sample_value = 0;
-			fin.read((char*)(&sample_value), sizeof(sample_value));
-			audio_data[channel][sample] = (float)sample_value / (float)max_value;
-			fout << sample_value << ", ";
-		} */
+	for(unsigned long sample = 0; sample < num_samples; sample++) {	
 		for(int channel = 0; channel < fmt.num_channels; channel++) {
 			char buffer[bytes_per_sample];
-			int64_t sample_value = 0;
 			fin.read(buffer, bytes_per_sample);
-			for(uint16_t i = 0; i < bytes_per_sample; i++) {
-				uint16_t byte_shift = i;
-				uint64_t next = (buffer[i] & 0x00ff) << (byte_shift * 8);
-				sample_value |= next;
-			}
-			if(sample_value > max_value) {
-				sample_value = (max_value * 2 - sample_value) * -1;
-			}
-			audio_data[channel][sample] = (float)sample_value / (float)max_value;
+			audio_data[channel][sample] = convert_bytes(buffer, bytes_per_sample);
 		}
 		if(fin.fail()) {
 			break;
@@ -156,10 +147,20 @@ bool Parser::read_data(ChunkInfo chunk_info) {
 	return !fin.fail();
 }
 
-bool Parser::read_chunk_info(ChunkInfo* chunk_info) { // returns bool for whether it succeeds
-	if(fin.read((char*)(chunk_info), sizeof(chunk_info))) {
-		return true;
+float Parser::convert_bytes(char* bytes, uint16_t size) {
+	if(size == 1) {
+		cout << "UNSUPPORTED OPERATION" << endl;	
+		return 0;
 	} else {
-		return false;
+		int64_t max_value = pow(2, (size * 8)) / 2;
+		int64_t sample_value = 0;
+		for(uint16_t i = 0; i < size; i++) {
+			uint64_t next = (bytes[i] & 0x00ff) << (i * 8);
+			sample_value |= next;
+		}
+		if(sample_value >= max_value) {
+			sample_value = (max_value * 2 - sample_value) * -1;
+		}
+		return (float)sample_value / (float)max_value;
 	}
 }

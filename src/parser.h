@@ -50,5 +50,6 @@ private:
 	bool read_fmt(ChunkInfo chunk_info);
 	bool read_data(ChunkInfo chunk_info);
 	bool read_chunk_info(ChunkInfo* chunk_info);
+	float convert_bytes(char* bytes, uint16_t size);
 };
 
