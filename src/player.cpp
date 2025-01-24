@@ -1,10 +1,12 @@
 #include "player.h"
 
 #include <iostream>
+#include <mutex>
 
 using namespace std;
 
-int Player::pa_callback(const void* input, void* output, unsigned long frames_per_buffer, 
+// used for if audio is set prior to starting audio and does not change
+int Player::pa_callback_audio(const void* input, void* output, unsigned long frames_per_buffer, 
 				const PaStreamCallbackTimeInfo* time_info,
 				PaStreamCallbackFlags status_flags,
 				void* user_data) {
@@ -25,20 +27,59 @@ int Player::pa_callback(const void* input, void* output, unsigned long frames_pe
 	return 0;
 }
 
-Player::Player(uint32_t sample_rate, uint16_t num_channels) {
+// uses processor class
+int Player::pa_callback_processor(const void* input, void* output, unsigned long frames_per_buffer, 
+				const PaStreamCallbackTimeInfo* time_info,
+				PaStreamCallbackFlags status_flags,
+				void* user_data) {
+	Processor* callback_processor = (Processor*)user_data;
+	float* out = (float*)output;
+	(void) input;
+
+	lock_guard<mutex> lock(callback_processor->mtx);
+	// cout << "Callback: Locked" << endl;
+	
+	RubberBandStretcher* stretcher = callback_processor->get_stretcher();
+	int num_available = stretcher->available();
+	// cout << "Callback: num_available: " << num_available << endl;
+	
+	if(num_available == -1) { // in the case that it has reached the end
+		return 1; // stops the stream
+	}
+
+	uint16_t num_channels = callback_processor->get_num_channels();	
+	float** retrieved = new float*[num_channels];
+	for(size_t i = 0; i < num_channels; i++) {
+		retrieved[i] = new float[frames_per_buffer];
+	}
+
+	unsigned long num_requested = frames_per_buffer;
+	if(num_requested > num_available) num_requested = num_available;
+
+	unsigned long num_retrieved = stretcher->retrieve(retrieved, num_requested);
+	// cout << "Callback: num_retrieved " << num_retrieved << endl;
+
+	for(unsigned long i = 0; i < frames_per_buffer; i++) {
+		if(i >= num_retrieved) {
+			out[i*2] = 0;
+			out[i*2 + 1] = 0;
+		} else {
+			out[i*2] = retrieved[0][i];
+			out[i*2 + 1] = retrieved[1][i];
+		}
+	}
+	delete[] retrieved;
+	return 0;
+}
+
+
+Player::Player() {
 	PaError err = Pa_Initialize();
 	if(err != paNoError) {
 		cout << "Error: " << Pa_GetErrorText(err) << endl;
 	} else {
 		cout << "Port Audio successfully initialized" << endl;
-	}
-
-	err = Pa_OpenDefaultStream(&stream, 0, num_channels, paFloat32, sample_rate, paFramesPerBufferUnspecified, pa_callback, &audio_data);
-	if(err != paNoError) {
-		cout << "Error: " << Pa_GetErrorText(err) << endl;
-	} else {
-		cout << "Port Audio successfully opened stream" << endl;
-	}
+	}	
 }
 
 Player::~Player() {
@@ -66,14 +107,42 @@ Player::~Player() {
 	}
 }
 
-void Player::start_stream() {	
-	PaError err = Pa_StartStream(stream);
+void Player::start_stream() {
+	PaError err;
+	if(processor == nullptr) {
+		err = Pa_OpenDefaultStream(&stream,
+							 0,
+							 num_channels,
+							 paFloat32,
+							 sample_rate,
+							 paFramesPerBufferUnspecified,
+							 pa_callback_audio,
+							 &audio_data);
+	} else {
+		err = Pa_OpenDefaultStream(&stream,
+							 0,
+							 num_channels,
+							 paFloat32,
+							 sample_rate,
+							 paFramesPerBufferUnspecified,
+							 pa_callback_processor,
+							 processor);
+	}
+	if(err != paNoError) {
+		cout << "Error: " << Pa_GetErrorText(err) << endl;
+	} else {
+		cout << "Port Audio successfully opened stream" << endl;
+	}
+
+	err = Pa_StartStream(stream);
 	if(err != paNoError) {
 		cout << "Error: " << Pa_GetErrorText(err) << endl;
 	} else {
 		cout << "Port Audio successfully started stream" << endl;
 	}
-	Pa_Sleep(25000);
+	if(processor == nullptr) {
+		Pa_Sleep(25000);
+	}
 }
 
 void Player::set_audio(float** data, unsigned long num_samples, uint16_t num_channels) {
@@ -83,4 +152,16 @@ void Player::set_audio(float** data, unsigned long num_samples, uint16_t num_cha
 	audio_data.num_channels = num_channels;
 	audio_data.sample_index = 0;
 	this->audio_data = audio_data;
+}
+
+void Player::set_processor(Processor* processor) {
+	this->processor = processor;
+}
+
+void Player::set_sample_rate(uint32_t sample_rate) {
+	this->sample_rate = sample_rate;
+}
+
+void Player::set_num_channels(uint16_t num_channels) {
+	this->num_channels = num_channels;
 }

@@ -17,23 +17,25 @@ int main() {
 	uint32_t sample_rate = parser.get_sample_rate();
 
 	// initialize stretcher
-	// Processor processor; // should call constructor
+	Processor processor;
+	processor.set_sample_rate(sample_rate);
+	processor.set_audio_data(data, num_samples, num_channels);
+	processor.init();
 	
 	// initialize player
-	Player player(sample_rate, num_channels);
-	player.set_audio(data, num_samples, num_channels);
+	Player player;
+	player.set_sample_rate(sample_rate);
+	player.set_num_channels(num_channels);
+	player.set_processor(&processor);
 	player.start_stream();
 
 
 	// process loop
+	cout << endl << "-----REACHED PROCESS LOOP----" << endl;
 	while(true) {
-		// query getSamplesRequired() -> how many audio sample frames are required
-
-		// provide num of samples to process()
-
-		// read output using availble() or retrieve()
-		
-		break;
+		if(!processor.update()) {
+			break;
+		}
 	}
 	cout << "End of program" << endl;
 

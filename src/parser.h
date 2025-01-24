@@ -2,8 +2,10 @@
 #include <string>
 #include <fstream>
 
-
 using namespace std;
+
+#ifndef PARSER
+#define PARSER
 
 struct WAVHeader {
 	char chunk_id[4];
@@ -53,3 +55,4 @@ private:
 	float convert_bytes(char* bytes, uint16_t size);
 };
 
+#endif
