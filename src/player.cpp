@@ -39,36 +39,15 @@ int Player::pa_callback_processor(const void* input, void* output, unsigned long
 	lock_guard<mutex> lock(callback_processor->mtx);
 	// cout << "Callback: Locked" << endl;
 	
-	RubberBandStretcher* stretcher = callback_processor->get_stretcher();
-	int num_available = stretcher->available();
-	// cout << "Callback: num_available: " << num_available << endl;
-	
-	if(num_available == -1) { // in the case that it has reached the end
-		return 1; // stops the stream
-	}
-
-	uint16_t num_channels = callback_processor->get_num_channels();	
-	float** retrieved = new float*[num_channels];
-	for(size_t i = 0; i < num_channels; i++) {
-		retrieved[i] = new float[frames_per_buffer];
-	}
-
-	unsigned long num_requested = frames_per_buffer;
-	if(num_requested > num_available) num_requested = num_available;
-
-	unsigned long num_retrieved = stretcher->retrieve(retrieved, num_requested);
-	// cout << "Callback: num_retrieved " << num_retrieved << endl;
-
+	float** audio_data = callback_processor->retrieve_audio(frames_per_buffer);
 	for(unsigned long i = 0; i < frames_per_buffer; i++) {
-		if(i >= num_retrieved) {
-			out[i*2] = 0;
-			out[i*2 + 1] = 0;
-		} else {
-			out[i*2] = retrieved[0][i];
-			out[i*2 + 1] = retrieved[1][i];
-		}
+		out[i*2] = audio_data[0][i];
+		out[i*2 + 1] = audio_data[1][i];
 	}
-	delete[] retrieved;
+	for(uint16_t i = 0; i < callback_processor->get_num_channels(); i++) {
+		delete[] audio_data[i];
+	}
+	delete[] audio_data;
 	return 0;
 }
 
@@ -124,7 +103,7 @@ void Player::start_stream() {
 							 num_channels,
 							 paFloat32,
 							 sample_rate,
-							 paFramesPerBufferUnspecified,
+							 256,
 							 pa_callback_processor,
 							 processor);
 	}

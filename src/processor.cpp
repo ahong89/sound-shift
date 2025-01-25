@@ -27,38 +27,71 @@ void Processor::init() {
 }
 
 bool Processor::update() {
-	// query getSamplesRequired() -> how many audio sample frames are required
+	// process data
+	if(!is_final) {
+		size_t num_samples_required = stretcher->getSamplesRequired();
+		if(num_samples_required >= audio_data.num_samples - curr_sample_index) {
+			is_final = true;
+			num_samples_required = audio_data.num_samples - curr_sample_index;
+		}	
+		float** input = new float*[num_channels];
+		for(size_t i = 0; i < num_channels; i++) {
+			input[i] = audio_data.data[i] + curr_sample_index;
+		}
+		stretcher->process(input, num_samples_required, is_final); 	
+		curr_sample_index += num_samples_required;
+		delete[] input;
+	}
+
+	// get processed data
+	int num_available = stretcher->available();	
+	if(num_available == -1) { // in the case that it has reached the end
+		return false;
+	}
+
 	lock_guard<mutex> lock(mtx);
-	// cout << "Update: Locked" << endl;
-
-	size_t num_samples_required = stretcher->getSamplesRequired();
-	// cout << "Update: Asking for " << num_samples_required << " samples" << endl;
-	bool is_final = false;
-	if(num_samples_required >= audio_data.num_samples - curr_sample_index) {
-		is_final = true;
-		num_samples_required = audio_data.num_samples - curr_sample_index;
-	}
-	// cout << "Update: is_final " << is_final << endl;
-	
-	// provide num of samples to process()
-	float** input = new float*[num_channels];
+	float** retrieved = new float*[num_channels];
 	for(size_t i = 0; i < num_channels; i++) {
-		input[i] = audio_data.data[i] + curr_sample_index;
+		retrieved[i] = new float[num_available];
 	}
-	stretcher->process(input, num_samples_required, is_final); 
-
-	delete[] input;
-	// cout << "Sent " << num_samples_required << " to process" << endl;
-	curr_sample_index += num_samples_required;
+	unsigned long num_retrieved = stretcher->retrieve(retrieved, num_available);
+	for(size_t i = 0; i < num_retrieved; i++) {
+		float* sample = new float[num_channels];
+		for(uint16_t j = 0; j < num_channels; j++) {
+			sample[j] = retrieved[j][i];
+		}
+		processed_audio.push_back(sample);
+	}
+	for(uint16_t i = 0; i < num_channels; i++) {
+		delete[] retrieved[i];
+	}
+	delete[] retrieved;
 	return true;
 }
 
-RubberBandStretcher* Processor::get_stretcher() {
-	return stretcher;
+
+float** Processor::retrieve_audio(unsigned long num_samples) {
+	float** audio_output = new float*[num_channels];
+	for(uint16_t i = 0; i < num_channels; i++) {
+		audio_output[i] = new float[num_samples]();
+	}	
+	if(processed_audio.size() < num_samples) {
+		return audio_output;	
+	}
+	for(unsigned long i = 0; i < num_samples; i++) {
+		float* sample = processed_audio.front();
+		processed_audio.pop_front();
+		for(uint16_t j = 0; j < num_channels; j++) {
+			audio_output[j][i] = sample[j];
+		}
+		// cout << "sample: " << audio_output[0][i] << ", " << audio_output[1][i] << endl;
+		delete[] sample;
+	}
+	return audio_output;
 }
 
 void Processor::set_sample_rate(uint32_t sample_rate) {
-	this->sample_rate = sample_rate;	
+	this->sample_rate = sample_rate;
 }
 
 void Processor::set_num_channels(uint16_t num_channels) {
