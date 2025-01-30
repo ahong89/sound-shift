@@ -9,7 +9,7 @@ using namespace std;
 
 int main() {
 	// initialize parser
-	Parser parser;
+	Parser parser("guitar.wav");
 	parser.parse();
 	float** data = parser.get_audio_data();
 	unsigned long num_samples = parser.get_num_samples();

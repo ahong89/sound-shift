@@ -8,8 +8,8 @@
 
 using namespace std;
 
-Parser::Parser() {
-
+Parser::Parser(string filename) {
+	this->filename = filename;
 }
 
 float** Parser::get_audio_data() {

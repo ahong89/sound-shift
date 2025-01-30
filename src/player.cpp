@@ -55,7 +55,7 @@ int Player::pa_callback_processor(const void* input, void* output, unsigned long
 Player::Player() {
 	PaError err = Pa_Initialize();
 	if(err != paNoError) {
-		cout << "Error: " << Pa_GetErrorText(err) << endl;
+		cout << "Error in initializing: " << Pa_GetErrorText(err) << endl;
 	} else {
 		cout << "Port Audio successfully initialized" << endl;
 	}	
@@ -108,7 +108,7 @@ void Player::start_stream() {
 							 processor);
 	}
 	if(err != paNoError) {
-		cout << "Error: " << Pa_GetErrorText(err) << endl;
+		cout << "Error in starting stream: " << Pa_GetErrorText(err) << endl;
 	} else {
 		cout << "Port Audio successfully opened stream" << endl;
 	}

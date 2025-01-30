@@ -29,7 +29,7 @@ struct FmtChunk {
 
 class Parser {
 public:
-	Parser();
+	Parser(string filename);
 	void parse();	
 
 	float** get_audio_data();
@@ -41,7 +41,7 @@ public:
 	void print_fmt();
 	void print_data();
 private:
-	string filename = "bach.wav";
+	string filename;
 	ifstream fin;
 	WAVHeader header;
 	FmtChunk fmt;
