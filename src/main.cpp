@@ -1,5 +1,4 @@
 #include <iostream>
-#include <fstream>
 
 #include "parser.h"
 #include "processor.h"
@@ -15,6 +14,8 @@ int main() {
 	unsigned long num_samples = parser.get_num_samples();
 	uint16_t num_channels = parser.get_num_channels();
 	uint32_t sample_rate = parser.get_sample_rate();
+	cout << "sample_rate: " << sample_rate << endl;
+	cout << "num_samples: " << num_samples << endl;
 
 	// initialize stretcher
 	Processor processor;
@@ -27,6 +28,7 @@ int main() {
 	player.set_sample_rate(sample_rate);
 	player.set_num_channels(num_channels);
 	player.set_processor(&processor);
+	// player.set_audio(data, num_samples, num_channels);
 	player.start_stream();
 
 
@@ -34,7 +36,8 @@ int main() {
 	cout << endl << "-----REACHED PROCESS LOOP----" << endl;
 	while(true) {
 		if(!processor.update()) {
-			break;
+			// cout << "Processing complete.." << endl;
+			// break;
 		}
 	}
 	cout << "End of program" << endl;

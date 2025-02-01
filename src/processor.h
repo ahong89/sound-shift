@@ -1,4 +1,5 @@
 #include <rubberband/RubberBandStretcher.h>
+#include <cstdint>
 #include <deque>
 #include <mutex>
 
@@ -14,6 +15,12 @@ struct AudioData {
 	uint16_t num_channels;
 };
 
+enum State {
+	Processing,
+	Playing,
+	Stopped
+};
+
 class Processor {
 public:
 	Processor();
@@ -21,7 +28,12 @@ public:
 	bool update();
 
 	float** retrieve_audio(unsigned long num_samples);
-	mutex mtx;
+	mutex audio_mutex;
+
+	State get_state();
+	void set_state(State next_state);
+	mutex state_mutex;
+
 	void set_num_channels(uint16_t num_channels);
 	uint16_t get_num_channels();
 	void set_sample_rate(uint32_t sample_rate);
@@ -32,8 +44,9 @@ private:
 
 	AudioData audio_data;
 	unsigned long curr_sample_index = 0;
-	bool is_final = false;
+	bool processing_complete = false;
 	deque<float*> processed_audio;
+	State curr_state;
 
 	size_t num_channels;
 	size_t sample_rate;

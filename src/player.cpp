@@ -2,6 +2,7 @@
 
 #include <iostream>
 #include <mutex>
+#include <chrono>
 
 using namespace std;
 
@@ -32,13 +33,13 @@ int Player::pa_callback_processor(const void* input, void* output, unsigned long
 				const PaStreamCallbackTimeInfo* time_info,
 				PaStreamCallbackFlags status_flags,
 				void* user_data) {
+    auto start = chrono::high_resolution_clock::now();
+
 	Processor* callback_processor = (Processor*)user_data;
 	float* out = (float*)output;
 	(void) input;
 
-	lock_guard<mutex> lock(callback_processor->mtx);
-	// cout << "Callback: Locked" << endl;
-	
+	lock_guard<mutex> lock(callback_processor->audio_mutex);
 	float** audio_data = callback_processor->retrieve_audio(frames_per_buffer);
 	for(unsigned long i = 0; i < frames_per_buffer; i++) {
 		out[i*2] = audio_data[0][i];
@@ -48,6 +49,10 @@ int Player::pa_callback_processor(const void* input, void* output, unsigned long
 		delete[] audio_data[i];
 	}
 	delete[] audio_data;
+
+    auto end = chrono::high_resolution_clock::now();
+	int milliseconds = chrono::duration_cast<std::chrono::milliseconds>(end-start).count();
+	cout << "Callback: duration was " << milliseconds << endl;
 	return 0;
 }
 
@@ -98,12 +103,18 @@ void Player::start_stream() {
 							 pa_callback_audio,
 							 &audio_data);
 	} else {
-		err = Pa_OpenDefaultStream(&stream,
-							 0,
-							 num_channels,
-							 paFloat32,
+		PaStreamParameters output_parameters;
+		output_parameters.device = 0;
+		output_parameters.channelCount = num_channels;
+		output_parameters.sampleFormat = paFloat32;
+		output_parameters.suggestedLatency = 0.1;
+		output_parameters.hostApiSpecificStreamInfo = nullptr;
+		err = Pa_OpenStream(&stream,
+							 nullptr,
+							 &output_parameters,
 							 sample_rate,
-							 256,
+							 paFramesPerBufferUnspecified,
+							 0,
 							 pa_callback_processor,
 							 processor);
 	}

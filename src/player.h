@@ -1,6 +1,5 @@
-#include "portaudio.h"
 #include <cstdint>
-
+#include "portaudio.h"
 #include "processor.h"
 
 #ifndef PLAYER

@@ -3,7 +3,6 @@
 #include <fstream>
 #include <iostream>
 #include <cstring>
-#include <iomanip>
 #include <cmath>
 
 using namespace std;
@@ -55,6 +54,12 @@ void Parser::print_data() {
 	}
 }
 
+void Parser::print_chunk_header(ChunkInfo chunk_info) {
+	cout << "---SUB CHUNK HEADER ---" << endl;
+	cout << "subchunk_id: " << chunk_info.subchunk_id << endl;
+	cout << "subchunk_size: " << chunk_info.subchunk_size << endl;
+}
+
 void Parser::parse() {
 	fin = ifstream("./media/" + filename, ios::binary);	
 
@@ -72,6 +77,7 @@ void Parser::parse() {
 	while(true){
 		bool succeed = read_chunk_info(chunk_info);
 		if(succeed) {
+			print_chunk_header(*chunk_info);
 			if(memcmp(chunk_info->subchunk_id, fmt_id, 4) == 0) {
 				if(read_fmt(*chunk_info)) {
 					found_fmt = true;
@@ -109,7 +115,7 @@ bool Parser::read_header() {
 }
 
 bool Parser::read_chunk_info(ChunkInfo* chunk_info) { // returns bool for whether it succeeds
-	if(fin.read((char*)(chunk_info), sizeof(chunk_info))) {
+	if(fin.read((char*)(chunk_info), sizeof(*chunk_info))) {
 		return true;
 	} else {
 		return false;
@@ -136,7 +142,7 @@ bool Parser::read_data(ChunkInfo chunk_info) {
 	
 	for(unsigned long sample = 0; sample < num_samples; sample++) {	
 		for(int channel = 0; channel < fmt.num_channels; channel++) {
-			char buffer[bytes_per_sample];
+			char* buffer = new char[bytes_per_sample];
 			fin.read(buffer, bytes_per_sample);
 			audio_data[channel][sample] = convert_bytes(buffer, bytes_per_sample);
 		}

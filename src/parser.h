@@ -40,6 +40,7 @@ public:
 	void print_header();
 	void print_fmt();
 	void print_data();
+	void print_chunk_header(ChunkInfo chunk_info);
 private:
 	string filename;
 	ifstream fin;
